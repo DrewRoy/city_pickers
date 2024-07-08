@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:city_pickers/modal/base_citys.dart';
+import 'package:city_pickers/src/utils/utils.dart';
 import 'package:flutter/material.dart';
 
 import '../../modal/point.dart';
@@ -55,7 +56,7 @@ class BaseView extends StatefulWidget {
     this.borderRadius = 0,
     this.global = false,
   }) : assert(!(itemBuilder != null && itemExtent == null),
-            "\ritemExtent could't be null if itemBuilder exits");
+  "\ritemExtent could't be null if itemBuilder exits");
 
   _BaseView createState() => _BaseView();
 }
@@ -65,13 +66,13 @@ class _BaseView extends State<BaseView> {
   bool _resetControllerOnce = false;
 
   FixedExtentScrollController provinceController =
-      new FixedExtentScrollController();
+  new FixedExtentScrollController();
   FixedExtentScrollController cityController =
-      new FixedExtentScrollController();
+  new FixedExtentScrollController();
   FixedExtentScrollController areaController =
-      new FixedExtentScrollController();
+  new FixedExtentScrollController();
   FixedExtentScrollController villageController =
-      new FixedExtentScrollController(); // 增加第4级(村/镇)选择
+  new FixedExtentScrollController(); // 增加第4级(村/镇)选择
 
   // 所有省的列表. 因为性能等综合原因,
   // 没有一次性构建整个以国为根的树. 动态的构建以省为根的树, 效率高.
@@ -121,7 +122,7 @@ class _BaseView extends State<BaseView> {
     if (showType.contain(ShowType.p)) {
       provinceController = new FixedExtentScrollController(
           initialItem:
-              provinces.indexWhere((Point p) => p.code == targetProvince.code));
+          provinces.indexWhere((Point p) => p.code == targetProvince.code));
     }
     if (showType.contain(ShowType.c)) {
       cityController = new FixedExtentScrollController(
@@ -151,7 +152,7 @@ class _BaseView extends State<BaseView> {
     cityController = new FixedExtentScrollController(initialItem: 0);
     areaController = new FixedExtentScrollController(initialItem: 0);
     villageController =
-        new FixedExtentScrollController(initialItem: 0); // 增加第4级(村/镇)选择
+    new FixedExtentScrollController(initialItem: 0); // 增加第4级(村/镇)选择
     _resetControllerOnce = true;
   }
 
@@ -220,7 +221,7 @@ class _BaseView extends State<BaseView> {
     if (target == Point.nullPoint()) {
       return Point.nullPoint();
     }
-    if (target.children.isNotEmpty && target.children.isNotEmpty) {
+    if (target.children.isNotEmpty) {
       return target.children.first;
     }
     return Point.nullPoint();
@@ -252,9 +253,28 @@ class _BaseView extends State<BaseView> {
     return result;
   }
 
+  void _jumpToFirstByHighestMod(Mods highestMod) {
+    switch (highestMod) {
+      case Mods.Province:
+        break;
+      case Mods.City:
+        cityController.jumpToItem(0);
+        continue next1;
+      next1:
+      case Mods.Area:
+        areaController.jumpToItem(0);
+        continue next2;
+      next2:
+      case Mods.Village:
+        villageController.jumpToItem(0);
+        break;
+    }
+  }
+
   // province change handle
   // 加入延时处理, 减少构建树的消耗
   _onProvinceChange(Point _province) {
+    if (kVerbose) print('_onProvinceChange: $_province');
     if (_changeTimer != null && _changeTimer!.isActive) {
       _changeTimer!.cancel();
     }
@@ -272,11 +292,12 @@ class _BaseView extends State<BaseView> {
         }
         _resetController();
       });
+      _jumpToFirstByHighestMod(Mods.City);
     });
   }
 
   _onCityChange(Point _targetCity) {
-    print('_onCityChange');
+    if (kVerbose) print('_onCityChange: $_targetCity');
     if (_changeTimer != null && _changeTimer!.isActive) {
       _changeTimer!.cancel();
     }
@@ -291,11 +312,14 @@ class _BaseView extends State<BaseView> {
           targetVillage = Point.nullPoint();
         }
       });
+      _jumpToFirstByHighestMod(Mods.Area);
     });
+
     _resetController();
   }
 
   _onAreaChange(Point _targetArea) {
+    if (kVerbose) print('_onAreaChange: $_targetArea');
     if (_changeTimer != null && _changeTimer!.isActive) {
       _changeTimer!.cancel();
     }
@@ -305,11 +329,13 @@ class _BaseView extends State<BaseView> {
         targetArea = _targetArea;
         targetVillage = _getTargetChildFirst(targetArea!);
       });
+      _jumpToFirstByHighestMod(Mods.Village);
     });
   }
 
   // 增加第4级(村/镇)选择
   _onVillageChange(Point _targetVillage) {
+    if (kVerbose) print('_onVillageChange: $_targetVillage');
     if (_changeTimer != null && _changeTimer!.isActive) {
       _changeTimer!.cancel();
     }
@@ -325,45 +351,24 @@ class _BaseView extends State<BaseView> {
     Result result = Result();
     ShowType showType = widget.showType;
     if (showType.contain(ShowType.p)) {
-      result.provinceId = targetProvince.code.toString();
+      result.provinceId = targetProvince.code;
       result.provinceName = targetProvince.name;
     }
     if (showType.contain(ShowType.c)) {
-      result.provinceId = targetProvince.code.toString();
-      result.provinceName = targetProvince.name;
-      result.cityId = targetCity?.code.toString();
+      result.cityId = targetCity?.code;
       result.cityName = targetCity?.name;
     }
     if (showType.contain(ShowType.a)) {
-      result.provinceId = targetProvince.code.toString();
-      result.provinceName = targetProvince.name;
-      result.cityId = targetCity?.code.toString();
-      result.cityName = targetCity?.name;
-      result.areaId = targetArea?.code.toString();
+      result.areaId = targetArea?.code;
       result.areaName = targetArea?.name;
     }
 
     // 增加第4级(村/镇)选择
     if (showType.contain(ShowType.v)) {
-      result.provinceId = targetProvince.code.toString();
-      result.provinceName = targetProvince.name;
-      result.cityId = targetCity!.code.toString();
-      result.cityName = targetCity?.name;
-      result.areaId = targetArea?.code.toString();
-      result.areaName = targetArea?.name;
-      result.villageId = targetVillage?.code.toString();
+      result.villageId = targetVillage?.code;
       result.villageName = targetVillage?.name;
     }
-    // 台湾异常数据. 需要过滤
-    // if (result.provinceId == "710000") {
-    //   result.cityId = null;
-    //   result.cityName = null;
-    //   result.areaId = null;
-    //   result.areaName = null;
-    //   result.villageId = null;
-    //   result.villageName = null;
-    // }
-
+    if (kVerbose) print('_buildResult: $result');
     return result;
   }
 
@@ -377,9 +382,12 @@ class _BaseView extends State<BaseView> {
         itemBuilder: widget.itemBuilder,
         itemExtent: widget.itemExtent,
         value: targetProvince.name,
-        itemList: provinces.toList().map((v) => v.name).toList(),
-        changed: (index) {
-          _onProvinceChange(provinces[index]);
+        itemList: provinces.map((v) => v.name).toList(),
+        onSelectedItemChanged: (index) {
+          final point = provinces.elementAtOrNullCompat(index);
+          if (point != null) {
+            _onProvinceChange(point);
+          }
         },
       ));
     }
@@ -393,8 +401,11 @@ class _BaseView extends State<BaseView> {
         itemExtent: widget.itemExtent,
         value: targetCity?.name,
         itemList: getCityItemList(),
-        changed: (index) {
-          _onCityChange(targetProvince.children[index]);
+        onSelectedItemChanged: (index) {
+          final point = targetProvince.children.elementAtOrNullCompat(index);
+          if (point != null) {
+            _onCityChange(point);
+          }
         },
       ));
     }
@@ -407,8 +418,11 @@ class _BaseView extends State<BaseView> {
         itemExtent: widget.itemExtent,
         value: targetArea?.name,
         itemList: getAreaItemList(),
-        changed: (index) {
-          _onAreaChange(targetCity!.children[index]);
+        onSelectedItemChanged: (index) {
+          final point = targetCity!.children.elementAtOrNullCompat(index);
+          if (point != null) {
+            _onAreaChange(point);
+          }
         },
       ));
     }
@@ -422,8 +436,11 @@ class _BaseView extends State<BaseView> {
         itemExtent: widget.itemExtent,
         value: targetVillage?.name,
         itemList: getVillageItemList(),
-        changed: (index) {
-          _onVillageChange(targetArea!.children[index]);
+        onSelectedItemChanged: (index) {
+          final point = targetArea!.children.elementAtOrNullCompat(index);
+          if (point != null) {
+            _onVillageChange(point);
+          }
         },
       ));
     }
@@ -491,7 +508,7 @@ class _BaseView extends State<BaseView> {
             child: new Material(
               color: Colors.transparent,
               child:
-                  new Container(width: double.infinity, child: _bottomBuild()),
+              new Container(width: double.infinity, child: _bottomBuild()),
             ),
           ),
         );

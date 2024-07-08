@@ -36,7 +36,7 @@ class Location {
 //    print("initLocation >>>> $_locationCode");
 
     CityTree cityTree =
-        new CityTree(metaInfo: citiesData, provincesInfo: provincesData);
+    new CityTree(metaInfo: citiesData, provincesInfo: provincesData);
 
     String locationCode;
     Result locationInfo = new Result();
@@ -53,7 +53,7 @@ class Location {
       return locationInfo;
     }
     locationInfo.provinceName = provincePoint!.name;
-    locationInfo.provinceId = provincePoint!.code.toString();
+    locationInfo.provinceId = provincePoint!.code;
 
     provincePoint!.children.forEach((Point _city) {
       if (_city.code == locationCode) {
@@ -71,12 +71,12 @@ class Location {
 
     if (cityPoint != null && !cityPoint!.isNull) {
       locationInfo.cityName = cityPoint!.name;
-      locationInfo.cityId = cityPoint!.code.toString();
+      locationInfo.cityId = cityPoint!.code;
     }
 
     if (areaPoint != null && !areaPoint!.isNull) {
       locationInfo.areaName = areaPoint!.name;
-      locationInfo.areaId = areaPoint!.code.toString();
+      locationInfo.areaId = areaPoint!.code;
     }
 
     return locationInfo;
